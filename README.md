@@ -16,7 +16,7 @@ Face Mask Detection on Image and Video using tensorflow and keras
 
 - [x] inference-img.py
 
-- [x] inference-wb.py
+- [x] inference-webcam.py
 
 ### Dataset:
 
@@ -36,7 +36,7 @@ python3 inference-img.py --input input/01.jpeg
 for inference on video using webcam, run the following command:
 
 ```
-
+python3 inference-webcam.py
 ```
 
 #
