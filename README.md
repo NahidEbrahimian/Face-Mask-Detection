@@ -2,9 +2,12 @@
 
 Face Mask Detection on Image and Video using tensorflow and keras
 
+| ![0777](https://user-images.githubusercontent.com/82975802/136189978-6f784a4a-a977-4783-915b-b4ad7dedc1f5.jpg)| ![0333](https://user-images.githubusercontent.com/82975802/136189989-2567c476-9fcd-4a78-97ab-e3b8d0fde874.jpg)| ![facedetection](https://user-images.githubusercontent.com/82975802/136190127-570a26b3-9778-497d-a269-738858fe6521.gif)|
+| :---:         |     :---:      |      :---:      |
+
 | ![01](https://user-images.githubusercontent.com/82975802/136102598-225cee41-fe9b-4150-99cd-f8b5945768de.jpg) | ![02](https://user-images.githubusercontent.com/82975802/136102619-d0370afc-21df-4bd7-9338-9b98981ec99d.jpg) | 
 | :---:         |     :---:      | 
-| ![077](https://user-images.githubusercontent.com/82975802/136111552-86fe9f32-9fa1-49fc-9eca-b6b2c434765a.jpg)| ![033](https://user-images.githubusercontent.com/82975802/136111585-43a23985-962d-4c3e-a53b-eb4ce0a52f48.jpg)|
+
 
 
 - Train Neural Network on face-mask dataset using tensorflow and keras
@@ -31,6 +34,10 @@ python3 inference-img.py --input input/01.jpeg
 ```
 
 for inference on video using webcam, run the following command:
+
+```
+
+```
 
 #
 
