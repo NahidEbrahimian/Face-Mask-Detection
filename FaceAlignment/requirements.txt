@@ -1,6 +1,0 @@
-cmake
-dlib
-numpy
-scipy
-pillow
-opencv-python

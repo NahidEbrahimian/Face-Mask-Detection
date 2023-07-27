@@ -2,8 +2,9 @@ import cv2
 import os
 import numpy as np
 from config import *
-from keras.models import load_model
-from FaceAlignment.align_image import main
+from numpy.lib.twodim_base import triu_indices_from
+import onnxruntime
+from face_detector import FaceDetector
 import argparse
 
 def get_optimal_font_scale(text, width):
@@ -16,44 +17,46 @@ def get_optimal_font_scale(text, width):
     return 1
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--input", default='input/02.jpg', type=str)
+parser.add_argument("--input", default='input/07.jpg', type=str)
 args = parser.parse_args()
 
-model = load_model("weights/model.h5")
+model = onnxruntime.InferenceSession("models/mask_detector.onnx", None)
 
 file_name, file_ext = os.path.splitext(os.path.basename(args.input))
 
 img = cv2.imread(args.input)
-img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-face_BB = main(img)
+detection_model = FaceDetector("models/scrfd_500m.onnx")
+faces, inference_time, cropped_face = detection_model.inference(img, dynamic=triu_indices_from) 
 
 try:
-    face, BB = next(face_BB)
-    face_img = cv2.resize(face, (width, height))
+  bboxes = []
+  for face in faces:
+    face_img = face.cropped_face
+    face_img = cv2.resize(face_img, (width, height))
+    face_img = face_img.astype(np.float32)
     face_img = face_img / 255.0
     face_img = face_img.reshape(1, width, height, 3)
 
-    y_pred = model.predict(face_img)
+    y_pred = model.run(['dense_1'], {'conv2d_input' : face_img})
     prediction = np.argmax(y_pred)
 
     if prediction == 0:
-      y_pred = "With Mask"
+      text = "With Mask"
     else:
-      y_pred = "Without Mask"
+      text = "Without Mask"
 
-    BB = np.array(BB)
-    font_size = get_optimal_font_scale(y_pred, img_rgb.shape[1] // 4)
-    cv2.rectangle(img, pt1=(BB[0], BB[1]), pt2=(BB[2], BB[3]), color=(0, 255, 0),thickness=2)
-    cv2.putText(img, y_pred, (img_rgb.shape[0] // 12, img_rgb.shape[1] // 12), cv2.FONT_HERSHEY_SIMPLEX, font_size, (0, 255, 0), 2,
+    font_size = get_optimal_font_scale(text, img.shape[1] // 6)
+    cv2.rectangle(img, (int(face.bbox[0]), int(face.bbox[1])), (int(face.bbox[2]), int(face.bbox[3])), (144, 0, 0), 2)
+    cv2.putText(img, text, (int(face.bbox[0]), int(face.bbox[1])-5), cv2.FONT_HERSHEY_SIMPLEX, font_size, (0, 255, 0), 2,
                     cv2.LINE_AA)
 
 except:
-    y_pred = 'Face not Detected'
-    font_size = get_optimal_font_scale(y_pred, img_rgb.shape[1] // 4)
-    cv2.putText(img, y_pred, (img_rgb.shape[0] // 12, img_rgb.shape[1] // 12), cv2.FONT_HERSHEY_SIMPLEX, font_size, (0, 255, 0), 2,
+    text = 'Face not Detected'
+    font_size = get_optimal_font_scale(text, img.shape[1] // 6)
+    cv2.putText(img, text, (int(face.bbox[0]), int(face.bbox[1])-5), cv2.FONT_HERSHEY_SIMPLEX, font_size, (0, 255, 0), 2,
                     cv2.LINE_AA)
 
 
-cv2.imshow('Face Mask Detection', img)
+# cv2.imshow('Face Mask Detection', img)
 cv2.imwrite(os.path.join('output/{}'.format(file_name)+ '.jpg'), img)
 cv2.waitKey()
