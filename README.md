@@ -20,7 +20,7 @@ Face Mask Detection on Image and Video using tensorflow and keras
 
 ### Dataset:
 
-Dataset link: [face-mask-dataset]( ashishjangra27/face-mask-12k-images-dataset)
+Dataset link: [face-mask-dataset](https://www.kaggle.com/datasets/ashishjangra27/face-mask-12k-images-dataset)
 
 #
 
