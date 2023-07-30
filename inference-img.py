@@ -32,12 +32,14 @@ try:
   bboxes = []
   for face in faces:
     face_img = face.cropped_face
+    face_img = cv2.cvtColor(face_img, cv2.COLOR_RGB2BGR )
     face_img = cv2.resize(face_img, (width, height))
     face_img = face_img.astype(np.float32)
     face_img = face_img / 255.0
     face_img = face_img.reshape(1, width, height, 3)
 
     y_pred = model.run(['dense_1'], {'conv2d_input' : face_img})
+    print(y_pred)
     prediction = np.argmax(y_pred)
 
     if prediction == 0:
