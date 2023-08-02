@@ -22,6 +22,8 @@ Face Mask Detection on Image and Video
 
 - [x] onnx inference
 
+- [ ] inference-video
+
 ### Dataset:
 
 Dataset link: [face-mask-dataset](https://www.kaggle.com/datasets/ashishjangra27/face-mask-12k-images-dataset)
