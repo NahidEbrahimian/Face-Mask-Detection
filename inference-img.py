@@ -17,7 +17,7 @@ def get_optimal_font_scale(text, width):
     return 1
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--input", default='input/07.jpg', type=str)
+parser.add_argument("--input", default='input/02.jpg', type=str)
 args = parser.parse_args()
 
 model = onnxruntime.InferenceSession("models/mask_detector.onnx", None)
@@ -26,7 +26,7 @@ file_name, file_ext = os.path.splitext(os.path.basename(args.input))
 
 img = cv2.imread(args.input)
 detection_model = FaceDetector("models/scrfd_500m.onnx")
-faces, inference_time, cropped_face = detection_model.inference(img, dynamic=triu_indices_from) 
+faces, inference_time, cropped_face = detection_model.inference(img) 
 
 try:
   bboxes = []
@@ -43,9 +43,9 @@ try:
     prediction = np.argmax(y_pred)
 
     if prediction == 0:
-      text = "With Mask"
+      text = f"With Mask, {y_pred[prediction]}"
     else:
-      text = "Without Mask"
+      text = "Without Mask, {y_pred[prediction]}"
 
     font_size = get_optimal_font_scale(text, img.shape[1] // 6)
     cv2.rectangle(img, (int(face.bbox[0]), int(face.bbox[1])), (int(face.bbox[2]), int(face.bbox[3])), (144, 0, 0), 2)

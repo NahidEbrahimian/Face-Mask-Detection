@@ -1,10 +1,26 @@
 import cv2
 import numpy as np
 from config import *
-from keras.models import load_model
-from FaceAlignment.align_image import main
+# from keras.models import load_model
+# from FaceAlignment.align_image import main
+import onnxruntime
+from face_detector import FaceDetector
 
-model = load_model("weights/model.h5")
+
+def get_optimal_font_scale(text, width):
+
+    for scale in reversed(range(0, 60, 1)):
+        textSize = cv2.getTextSize(text, fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=scale/10, thickness=1)
+        new_width = textSize[0][0]
+        if (new_width <= width):
+            return scale/10
+    return 1
+
+model = onnxruntime.InferenceSession("models/mask_detector.onnx", None)
+
+# file_name, file_ext = os.path.splitext(os.path.basename(args.input))
+
+detection_model = FaceDetector("models/scrfd_500m.onnx")
 
 video_cap = cv2.VideoCapture(0)
 video_cap.set(cv2.CAP_PROP_FPS, 1)
@@ -20,31 +36,40 @@ while True:
         break
 
     frame_width, frame_height, _ = frame.shape
-    face_bb = main(frame)
+    faces, inference_time, cropped_face = detection_model.inference(frame) 
+
+    # face_bb = main(frame)
 
     try:
-        face, bb = next(face_bb)
-        i = i + 1
-        img = cv2.resize(face, (width, height))
-        img = img / 255.0
-        img = img.reshape(1, width, height, 3)
+      bboxes = []
+      for face in faces:
+        face_img = face.cropped_face
+        face_img = cv2.cvtColor(face_img, cv2.COLOR_RGB2BGR )
+        face_img = cv2.resize(face_img, (width, height))
+        face_img = face_img.astype(np.float32)
+        face_img = face_img / 255.0
+        face_img = face_img.reshape(1, width, height, 3)
 
-        y_pred = model.predict(img)
+        y_pred = model.run(['dense_1'], {'conv2d_input' : face_img})
+        print(y_pred)
         prediction = np.argmax(y_pred)
 
         if prediction == 0:
-          y_pred = "With Mask"
+          text = f"With Mask, {y_pred[prediction]}"
         else:
-          y_pred = "Without Mask"
+          text = "Without Mask, {y_pred[prediction]}"
 
-        bb = np.array(bb)
-        cv2.rectangle(frame, pt1=(bb[0], bb[1]), pt2=(bb[2], bb[3]), color=(0, 255, 0), thickness=2)
-        cv2.putText(frame, y_pred, (frame_width // 12, frame_height // 12), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2,
+        font_size = get_optimal_font_scale(text, frame.shape[1] // 6)
+        cv2.rectangle(frame, (int(face.bbox[0]), int(face.bbox[1])), (int(face.bbox[2]), int(face.bbox[3])), (144, 0, 0), 2)
+        cv2.putText(frame, text, (int(face.bbox[0]), int(face.bbox[1])-5), cv2.FONT_HERSHEY_SIMPLEX, font_size, (0, 255, 0), 2,
                         cv2.LINE_AA)
+
     except:
-        y_pred = 'Face not Detected'
-        cv2.putText(frame, y_pred, (frame_width // 12, frame_height // 12), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2,
-                    cv2.LINE_AA)
+        text = 'Face not Detected'
+        font_size = get_optimal_font_scale(text, frame.shape[1] // 6)
+        cv2.putText(frame, text, (int(face.bbox[0]), int(face.bbox[1])-5), cv2.FONT_HERSHEY_SIMPLEX, font_size, (0, 255, 0), 2,
+                        cv2.LINE_AA)
+
 
     cv2.imshow('Face Mask Detection', frame)
     if cv2.waitKey(10) == ord('q'):
