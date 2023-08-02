@@ -38,24 +38,25 @@ try:
     face_img = face_img / 255.0
     face_img = face_img.reshape(1, width, height, 3)
 
-    y_pred = model.run(['dense_1'], {'conv2d_input' : face_img})
-    print(y_pred)
-    prediction = np.argmax(y_pred)
+    model_predict = model.run(['dense_1'], {'conv2d_input' : face_img})
+    max_index = np.argmax(model_predict)
 
-    if prediction == 0:
-      text = f"With Mask, {y_pred[prediction]}"
+    if max_index == 0:
+      text = "With Mask"
+      color = (0, 255, 0)
     else:
-      text = "Without Mask, {y_pred[prediction]}"
+      text = "Without Mask"
+      color = (0, 0, 255)
 
-    font_size = get_optimal_font_scale(text, img.shape[1] // 6)
-    cv2.rectangle(img, (int(face.bbox[0]), int(face.bbox[1])), (int(face.bbox[2]), int(face.bbox[3])), (144, 0, 0), 2)
-    cv2.putText(img, text, (int(face.bbox[0]), int(face.bbox[1])-5), cv2.FONT_HERSHEY_SIMPLEX, font_size, (0, 255, 0), 2,
+    font_size = get_optimal_font_scale(text, (int(face.bbox[3]) - int(face.bbox[1])) / 3)
+    cv2.rectangle(img, (int(face.bbox[0]), int(face.bbox[1])), (int(face.bbox[2]), int(face.bbox[3])), color, 2)
+    cv2.putText(img, text, (int(face.bbox[0]), int(face.bbox[1])-6), cv2.FONT_HERSHEY_SIMPLEX, font_size, color, 2,
                     cv2.LINE_AA)
 
 except:
     text = 'Face not Detected'
     font_size = get_optimal_font_scale(text, img.shape[1] // 6)
-    cv2.putText(img, text, (int(face.bbox[0]), int(face.bbox[1])-5), cv2.FONT_HERSHEY_SIMPLEX, font_size, (0, 255, 0), 2,
+    cv2.putText(img, text, (int(face.bbox[0]), int(face.bbox[1])-6), cv2.FONT_HERSHEY_SIMPLEX, font_size, (0, 255, 0), 2,
                     cv2.LINE_AA)
 
 
