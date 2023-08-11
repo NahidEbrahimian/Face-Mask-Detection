@@ -24,6 +24,8 @@ Face Mask Detection on Image and Video
 
 - [ ] inference-video
 
+- [ ] docker file
+
 ### Dataset:
 
 Dataset link: [face-mask-dataset](https://www.kaggle.com/datasets/ashishjangra27/face-mask-12k-images-dataset)
