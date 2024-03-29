@@ -1,6 +1,6 @@
 # Face-Mask-Detection
 
-Face Mask Detection on Image and Video
+Real Time Face Mask Detection on Image and Video
 
 | ![07](https://github.com/NahidEbrahimian/Face-Mask-Detection/assets/82975802/d33df9bd-770a-4120-afd2-125a63a4580a) | ![03](https://github.com/NahidEbrahimian/Face-Mask-Detection/assets/82975802/4bfcad68-166e-4c4b-84e0-ff4994aa3033) |
 | :---:         |     :---:      |
