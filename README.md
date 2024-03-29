@@ -18,7 +18,7 @@ Face Mask Detection on Image and Video
 
 - [x] inference-webcam.py
 
-- [x] requirements.txt
+- [ ] install.sh
 
 - [x] onnx inference
 
