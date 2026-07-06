@@ -3,15 +3,17 @@ import uuid
 import cv2
 import numpy as np
 import onnxruntime
+import mediapipe as mp
 from config import *
 from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
-from face_detector import FaceDetector
+from fastapi.responses import FileResponse
 
 app = FastAPI(title="Face Mask Detection API")
 
 mask_model = onnxruntime.InferenceSession("models/mask_detector.onnx", None)
-detection_model = FaceDetector("models/scrfd_500m.onnx")
+
+mp_face_detection = mp.solutions.face_detection
+face_detection = mp_face_detection.FaceDetection(model_selection=1, min_detection_confidence=0.5)
 
 def get_optimal_font_scale(text, width):
     for scale in reversed(range(0, 60, 1)):
@@ -27,21 +29,41 @@ def get_optimal_font_scale(text, width):
     return 1
 
 def process_image(img):
-    faces, inference_time, cropped_face = detection_model.inference(img)
+    h, w, _ = img.shape
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    results_mp = face_detection.process(img_rgb)
 
     results = []
 
     try:
-        for face in faces:
-            face_img = face.cropped_face
-            face_img = cv2.cvtColor(face_img, cv2.COLOR_RGB2BGR)
-            face_img = cv2.resize(face_img, (width, height))
-            face_img = face_img.astype(np.float32)
-            face_img = face_img / 255.0
-            face_img = face_img.reshape(1, width, height, 3)
+        if not results_mp.detections:
+            raise Exception("No face detected in the image.")
+        i=0
+        for detection in results_mp.detections:
+            bbox_raw = detection.location_data.relative_bounding_box
+            xmin = int(bbox_raw.xmin * w)
+            ymin = int(bbox_raw.ymin * h)
+            width_box = int(bbox_raw.width * w)
+            height_box = int(bbox_raw.height * h)
+            
+            xmin, ymin = max(0, xmin), max(0, ymin)
+            xmax, ymax = min(w, xmin + width_box), min(h, ymin + height_box)
 
-            model_predict = mask_model.run(['dense_1'], {'conv2d_input': face_img})
+            face_img = img[ymin:ymax, xmin:xmax]
+            
+            if face_img.size == 0:
+                continue
+
+            cv2.imwrite(f"FACE{i}.jpg", face_img)
+            i+=1
+            face_img_resized = cv2.resize(face_img, (width, height))
+            face_img_resized = face_img_resized.astype(np.float32)
+            face_img_resized = face_img_resized / 255.0
+            face_img_resized = face_img_resized.reshape(1, width, height, 3)
+            
+            model_predict = mask_model.run(['dense_1'], {'conv2d_input': face_img_resized})
             max_index = np.argmax(model_predict)
+            print(model_predict, max_index)
 
             if max_index == 0:
                 text = "With Mask"
@@ -50,20 +72,15 @@ def process_image(img):
                 text = "Without Mask"
                 color = (0, 0, 255)
 
-            bbox = [
-                int(face.bbox[0]),
-                int(face.bbox[1]),
-                int(face.bbox[2]),
-                int(face.bbox[3]),
-            ]
+            bbox = [xmin, ymin, xmax, ymax]
 
-            font_size = get_optimal_font_scale(text, (bbox[3] - bbox[1]) / 3)
+            font_size = get_optimal_font_scale(text, width_box / 3)
 
-            cv2.rectangle(img, (bbox[0], bbox[1]), (bbox[2], bbox[3]), color, 2)
+            cv2.rectangle(img, (xmin, ymin), (xmax, ymax), color, 2)
             cv2.putText(
                 img,
                 text,
-                (bbox[0], bbox[1] - 6),
+                (xmin, ymin - 10),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 font_size,
                 color,
@@ -78,7 +95,7 @@ def process_image(img):
 
     except Exception as e:
         text = "Face not Detected"
-        font_size = get_optimal_font_scale(text, img.shape[1] // 6)
+        font_size = get_optimal_font_scale(text, w // 6)
         cv2.putText(
             img,
             text,
@@ -104,7 +121,7 @@ def process_image(img):
 
 @app.get("/")
 def home():
-    return {"message": "Face Mask Detection API is running"}
+    return {"message": "Face Mask Detection API (MediaPipe) is running"}
 
 
 @app.post("/predict")
@@ -136,8 +153,6 @@ async def predict(file: UploadFile = File(...)):
 @app.get("/output/{filename}")
 def get_output_image(filename: str):
     file_path = os.path.join("output", filename)
-
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found.")
-
     return FileResponse(file_path, media_type="image/jpeg", filename=filename)
